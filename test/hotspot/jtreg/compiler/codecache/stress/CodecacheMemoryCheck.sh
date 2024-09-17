@@ -112,8 +112,8 @@ useJcmdPrintMemoryUsage()
                 break
             else
                 if kill -0 $$ ; then
-                echo "jcmd command execute fail!"
-                exit 1
+                    echo "jcmd command execute fail!"
+                    exit 1
                 else
                     mv ${i}-native_memory-summary.log jcmd-error.log
                     break
@@ -205,7 +205,7 @@ pid=$!
 ps -ef | grep java | grep UnexpectedDeoptimizationTestLoop &> ps-java.log
 getMemoryUsageFromProc ${pid} java.log 2> proc-detail-stderr.log &
 useJcmdPrintMemoryUsage ${pid} java.log 2> jcmd-detail-stderr.log
-if grep -q "Unable to open socket file" *-native_memory-summary.log ; then
+if ( set +x ; grep -q "Unable to open socket file" *-native_memory-summary.log ) ; then
     echo 'jcmd report error: "-native_memory-summary.log"'
     exit 1
 fi
