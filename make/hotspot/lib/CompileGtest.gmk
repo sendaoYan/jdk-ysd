@@ -62,7 +62,7 @@ $(eval $(call SetupJdkLibrary, BUILD_GTEST_LIBGTEST, \
     DISABLED_WARNINGS_gcc := format-nonliteral maybe-uninitialized undef \
         unused-result zero-as-null-pointer-constant, \
     DISABLED_WARNINGS_clang := format-nonliteral undef unused-result \
-        zero-as-null-pointer-constant, \
+        zero-as-null-pointer-constant deprecated-declarations, \
     DISABLED_WARNINGS_microsoft := 4530, \
     DEFAULT_CFLAGS := false, \
     CFLAGS := $(JVM_CFLAGS) \
