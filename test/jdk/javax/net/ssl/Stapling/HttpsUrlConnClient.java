@@ -572,7 +572,7 @@ public class HttpsUrlConnClient {
         rootOcsp.start();
 
         // Wait 5 seconds for server ready
-        boolean readyStatus = rootOcsp.awaitServerReady(5, TimeUnit.SECONDS);
+        boolean readyStatus = rootOcsp.awaitServerReady((int)Utils.adjustTimeout(5), TimeUnit.SECONDS);
         if (!readyStatus) {
             throw new RuntimeException("Server not ready");
         }
