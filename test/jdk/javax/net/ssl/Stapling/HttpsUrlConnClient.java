@@ -39,26 +39,23 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.net.Socket;
-import java.net.URL;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-
-import javax.net.ssl.*;
-
+import java.net.Socket;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.Security;
-import java.security.GeneralSecurityException;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertPathValidatorException.BasicReason;
 import java.security.cert.Certificate;
 import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
-import java.security.cert.PKIXRevocationChecker;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,8 +70,20 @@ import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import jdk.test.lib.security.SimpleOCSPServer;
+import javax.net.ssl.CertPathTrustManagerParameters;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.ManagerFactoryParameters;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+
 import jdk.test.lib.security.CertificateBuilder;
+import jdk.test.lib.security.SimpleOCSPServer;
 import jdk.test.lib.Utils;
 
 public class HttpsUrlConnClient {
