@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -75,6 +75,7 @@ import java.util.concurrent.TimeUnit;
 
 import jdk.test.lib.security.SimpleOCSPServer;
 import jdk.test.lib.security.CertificateBuilder;
+import jdk.test.lib.Utils;
 
 public class HttpsUrlConnClient {
 
@@ -335,8 +336,8 @@ public class HttpsUrlConnClient {
         URL location = new URL("https://localhost:" + serverPort);
         HttpsURLConnection tlsConn =
                 (HttpsURLConnection)location.openConnection();
-        tlsConn.setConnectTimeout(5000);
-        tlsConn.setReadTimeout(5000);
+        tlsConn.setConnectTimeout((int)Utils.adjustTimeout(5000));
+        tlsConn.setReadTimeout((int)Utils.adjustTimeout(5000));
         tlsConn.setDoInput(true);
 
         try (InputStream in = tlsConn.getInputStream()) {
@@ -431,8 +432,8 @@ public class HttpsUrlConnClient {
         Throwable curExc = e;
         CertPathValidatorException cpve = null;
         while (curExc != null) {
-            if (curExc instanceof CertPathValidatorException) {
-                cpve = (CertPathValidatorException)curExc;
+            if (curExc instanceof CertPathValidatorException certPathValidatorException) {
+                cpve = certPathValidatorException;
             }
             curExc = curExc.getCause();
         }
@@ -567,7 +568,7 @@ public class HttpsUrlConnClient {
         // Now fire up the OCSP responder
         rootOcsp = new SimpleOCSPServer(rootKeystore, passwd, ROOT_ALIAS, null);
         rootOcsp.enableLog(debug);
-        rootOcsp.setNextUpdateInterval(3600);
+        rootOcsp.setNextUpdateInterval((int)Utils.adjustTimeout(3600));
         rootOcsp.start();
 
         // Wait 5 seconds for server ready
@@ -618,11 +619,11 @@ public class HttpsUrlConnClient {
         intOcsp = new SimpleOCSPServer(intKeystore, passwd,
                 INT_ALIAS, null);
         intOcsp.enableLog(debug);
-        intOcsp.setNextUpdateInterval(3600);
+        intOcsp.setNextUpdateInterval((int)Utils.adjustTimeout(3600));
         intOcsp.start();
 
         // Wait 5 seconds for server ready
-        readyStatus = intOcsp.awaitServerReady(5, TimeUnit.SECONDS);
+        readyStatus = intOcsp.awaitServerReady((int)Utils.adjustTimeout(5), TimeUnit.SECONDS);
         if (!readyStatus) {
             throw new RuntimeException("Server not ready");
         }
@@ -740,7 +741,7 @@ public class HttpsUrlConnClient {
         boolean enabled = true;
         int cacheSize = 256;
         int cacheLifetime = 3600;
-        int respTimeout = 5000;
+        int respTimeout = (int)Utils.adjustTimeout(5000);
         String respUri = "";
         boolean respOverride = false;
         boolean ignoreExts = false;
@@ -849,8 +850,7 @@ public class HttpsUrlConnClient {
         }
 
         private void customizeSocket(Socket sock) {
-            if (sock instanceof SSLSocket) {
-                SSLSocket sslSock = (SSLSocket)sock;
+            if (sock instanceof SSLSocket sslSock) {
                 if (params.protocols != null) {
                     sslSock.setEnabledProtocols(params.protocols);
                 }
