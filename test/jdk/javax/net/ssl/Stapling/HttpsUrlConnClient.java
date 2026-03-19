@@ -29,8 +29,8 @@
  * @bug 8046321 8153829
  * @summary OCSP Stapling for TLS
  * @library /test/lib
- * @run main/othervm HttpsUrlConnClient RSA SHA256withRSA
- * @run main/othervm HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
+ * @run main/othervm -Dtest.debug=true HttpsUrlConnClient RSA SHA256withRSA
+ * @run main/othervm -Dtest.debug=true HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
  */
 
 import java.io.BufferedReader;
@@ -102,7 +102,7 @@ public class HttpsUrlConnClient {
     static String KEYALG;
 
     // Turn on TLS debugging
-    static boolean debug = true;
+    static boolean debug = Boolean.getBoolean("test.debug");
 
     /*
      * Should we run the client or server in a separate thread?
