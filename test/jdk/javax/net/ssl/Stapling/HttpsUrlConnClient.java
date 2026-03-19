@@ -29,8 +29,10 @@
  * @bug 8046321 8153829
  * @summary OCSP Stapling for TLS
  * @library /test/lib
- * @run main/othervm -Dtest.debug=true HttpsUrlConnClient RSA SHA256withRSA
- * @run main/othervm -Dtest.debug=true HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
+ * @run main/othervm -Dtest.debug=true -Dtest.separateServerThread=true HttpsUrlConnClient RSA SHA256withRSA
+ * @run main/othervm -Dtest.debug=true -Dtest.separateServerThread=true HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
+ * @run main/othervm -Dtest.debug=true -Dtest.separateServerThread=false HttpsUrlConnClient RSA SHA256withRSA
+ * @run main/othervm -Dtest.debug=true -Dtest.separateServerThread=false HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
  */
 
 import java.io.BufferedReader;
@@ -109,7 +111,7 @@ public class HttpsUrlConnClient {
      * Both sides can throw exceptions, but do you have a preference
      * as to which side should be the main thread.
      */
-    static boolean separateServerThread = true;
+    static boolean separateServerThread = Boolean.getBoolean("test.separateServerThread");
     Thread clientThread = null;
     Thread serverThread = null;
 
