@@ -348,8 +348,8 @@ public class HttpsUrlConnClient {
         URL location = URI.create("https://" + hostAddr + ":" + serverPort).toURL();
         HttpsURLConnection tlsConn =
                 (HttpsURLConnection)location.openConnection();
-        tlsConn.setConnectTimeout((int)Utils.adjustTimeout(TimeUnit.SECONDS.toMillis(5)));
-        tlsConn.setReadTimeout((int)Utils.adjustTimeout(TimeUnit.SECONDS.toMillis(5)));
+        tlsConn.setConnectTimeout((int)Utils.adjustTimeout(5000));
+        tlsConn.setReadTimeout((int)Utils.adjustTimeout(5000));
         tlsConn.setDoInput(true);
 
         try (InputStream in = tlsConn.getInputStream()) {
@@ -584,7 +584,7 @@ public class HttpsUrlConnClient {
         rootOcsp.start();
 
         // Wait 5 seconds for server ready
-        boolean readyStatus = rootOcsp.awaitServerReady((int)Utils.adjustTimeout(5), TimeUnit.SECONDS);
+        boolean readyStatus = rootOcsp.awaitServerReady((int)Utils.adjustTimeout(5000), TimeUnit.MILLISECONDS);
         if (!readyStatus) {
             throw new RuntimeException("Server not ready");
         }
@@ -635,7 +635,7 @@ public class HttpsUrlConnClient {
         intOcsp.start();
 
         // Wait 5 seconds for server ready
-        readyStatus = intOcsp.awaitServerReady((int)Utils.adjustTimeout(5), TimeUnit.SECONDS);
+        readyStatus = intOcsp.awaitServerReady((int)Utils.adjustTimeout(5000), TimeUnit.MILLISECONDS);
         if (!readyStatus) {
             throw new RuntimeException("Server not ready");
         }
