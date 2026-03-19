@@ -42,6 +42,7 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -342,7 +343,9 @@ public class HttpsUrlConnClient {
 
         HtucSSLSocketFactory sockFac = new HtucSSLSocketFactory(cliParams);
         HttpsURLConnection.setDefaultSSLSocketFactory(sockFac);
-        URL location = new URL("https://localhost:" + serverPort);
+        InetAddress loopback = InetAddress.getLoopbackAddress();
+        String hostAddr = loopback.getHostAddress();
+        URL location = URI.create("https://" + hostAddr + ":" + serverPort).toURL();
         HttpsURLConnection tlsConn =
                 (HttpsURLConnection)location.openConnection();
         tlsConn.setConnectTimeout((int)Utils.adjustTimeout(TimeUnit.SECONDS.toMillis(5)));
