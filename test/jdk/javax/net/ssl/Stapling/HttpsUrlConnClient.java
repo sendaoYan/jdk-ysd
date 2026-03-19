@@ -345,8 +345,8 @@ public class HttpsUrlConnClient {
         URL location = new URL("https://localhost:" + serverPort);
         HttpsURLConnection tlsConn =
                 (HttpsURLConnection)location.openConnection();
-        tlsConn.setConnectTimeout((int)Utils.adjustTimeout(5000));
-        tlsConn.setReadTimeout((int)Utils.adjustTimeout(5000));
+        tlsConn.setConnectTimeout((int)Utils.adjustTimeout(TimeUnit.SECONDS.toMillis(5)));
+        tlsConn.setReadTimeout((int)Utils.adjustTimeout(TimeUnit.SECONDS.toMillis(5)));
         tlsConn.setDoInput(true);
 
         try (InputStream in = tlsConn.getInputStream()) {
