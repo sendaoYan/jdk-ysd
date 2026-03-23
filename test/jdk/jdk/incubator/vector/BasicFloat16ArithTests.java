@@ -38,6 +38,7 @@ public class BasicFloat16ArithTests {
     private static float NaNf = Float.NaN;
 
     private static final float MAX_VAL_FP16 = 0x1.ffcp15f;
+    private static final float MIN_VAL_FP16 = 0x1.0p-24f;
 
     public static void main(String... args) {
         checkBitWise();
@@ -145,9 +146,9 @@ public class BasicFloat16ArithTests {
         checkInt(PRECISION,     11, "Float16.PRECISION");
         checkInt(SIZE,          16, "Float16.SIZE");
 
-        checkFloat16(MIN_VALUE,  0x1.0p-24f, "Float16.MIN_VALUE");
-        checkFloat16(MIN_NORMAL, 0x1.0p-14f, "Float16.MIN_NORMAL");
-        checkFloat16(MAX_VALUE,  65504.0f,  "Float16.MAX_VALUE");
+        checkFloat16(MIN_VALUE,  MIN_VAL_FP16, "Float16.MIN_VALUE");
+        checkFloat16(MIN_NORMAL, 0x1.0p-14f,   "Float16.MIN_NORMAL");
+        checkFloat16(MAX_VALUE,  65504.0f,     "Float16.MAX_VALUE");
 
         checkFloat16(POSITIVE_INFINITY,   InfinityF,  "+infinity");
         checkFloat16(NEGATIVE_INFINITY,  -InfinityF,  "-infinity");
@@ -389,12 +390,12 @@ public class BasicFloat16ArithTests {
             { NaNf,      MAX_EXPONENT + 1},
 
             // Subnormal and almost subnormal values
-            {-0.0f,       MIN_EXPONENT - 1},
-            {+0.0f,       MIN_EXPONENT - 1},
-            { 0x1.0p-24f, MIN_EXPONENT - 1}, // Float16.MIN_VALUE
-            {-0x1.0p-24f, MIN_EXPONENT - 1}, // Float16.MIN_VALUE
-            { 0x1.0p-14f, MIN_EXPONENT},     // Float16.MIN_NORMAL
-            {-0x1.0p-14f, MIN_EXPONENT},     // Float16.MIN_NORMAL
+            {-0.0f,         MIN_EXPONENT - 1},
+            {+0.0f,         MIN_EXPONENT - 1},
+            { MIN_VAL_FP16, MIN_EXPONENT - 1}, // Float16.MIN_VALUE
+            {-MIN_VAL_FP16, MIN_EXPONENT - 1}, // Float16.MIN_VALUE
+            { 0x1.0p-14f,   MIN_EXPONENT},     // Float16.MIN_NORMAL
+            {-0x1.0p-14f,   MIN_EXPONENT},     // Float16.MIN_NORMAL
 
             // Normal values
             { 1.0f,       0},
@@ -424,17 +425,17 @@ public class BasicFloat16ArithTests {
             { NaNf,      NaNf},
 
             // Zeros, subnormals, and MIN_VALUE all have MIN_VALUE as an ulp.
-            {-0.0f,       0x1.0p-24f},
-            {+0.0f,       0x1.0p-24f},
-            { 0x1.0p-24f, 0x1.0p-24f},
-            {-0x1.0p-24f, 0x1.0p-24f},
-            { 0x1.0p-14f, 0x1.0p-24f},
-            {-0x1.0p-14f, 0x1.0p-24f},
+            {-0.0f,         MIN_VAL_FP16},
+            {+0.0f,         MIN_VAL_FP16},
+            { MIN_VAL_FP16, MIN_VAL_FP16},
+            {-MIN_VAL_FP16, MIN_VAL_FP16},
+            { 0x1.0p-14f,   MIN_VAL_FP16},
+            {-0x1.0p-14f,   MIN_VAL_FP16},
 
-            // ulp is 10 bits away
-            {0x1.0p0f,       0x0.004p0f}, // 1.0f
-            {0x1.0p1f,       0x0.004p1f}, // 2.0f
-            {0x1.0p2f,       0x0.004p2f}, // 4.0f
+            // ulp is (PRECISION - 1) = 10 bits away
+            {0x1.0p0f,       0x1.0p-10f}, // 1.0f
+            {0x1.0p1f,       0x1.0p-9f},  // 2.0f
+            {0x1.0p2f,       0x1.0p-8f},  // 4.0f
 
             {MAX_VAL_FP16*0.5f, 0x0.004p14f},
             {MAX_VAL_FP16,      0x0.004p15f},
@@ -507,12 +508,12 @@ public class BasicFloat16ArithTests {
     }
 
     private static void checkValueOfLong() {
-        checkFloat16(valueOf(-65_521),  Float.NEGATIVE_INFINITY, "-infinity");
-        checkFloat16(valueOf(-65_520),  Float.NEGATIVE_INFINITY, "-infinity");
-        checkFloat16(valueOf(-65_519), -MAX_VALUE.floatValue(), "-MAX_VALUE");
-        checkFloat16(valueOf(65_519),   MAX_VALUE.floatValue(), "MAX_VALUE");
-        checkFloat16(valueOf(65_520),   Float.POSITIVE_INFINITY, "+infinity");
-        checkFloat16(valueOf(65_521),   Float.POSITIVE_INFINITY, "+infinity");
+        checkFloat16(valueOf(-65_521),  Float.NEGATIVE_INFINITY, "-65_521");
+        checkFloat16(valueOf(-65_520),  Float.NEGATIVE_INFINITY, "-65_520");
+        checkFloat16(valueOf(-65_519), -MAX_VALUE.floatValue(),  "-65_519");
+        checkFloat16(valueOf( 65_519),  MAX_VALUE.floatValue(),   "65_519");
+        checkFloat16(valueOf( 65_520),  Float.POSITIVE_INFINITY,  "65_520");
+        checkFloat16(valueOf( 65_521),  Float.POSITIVE_INFINITY,  "65_521");
     }
 
     private static void checkValueOfString() {
