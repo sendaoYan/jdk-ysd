@@ -1063,7 +1063,21 @@ DEBUG_ONLY(static GetThreadDescriptionFnPtr _GetThreadDescription = nullptr;)
 // forward decl.
 static errno_t convert_to_unicode(char const* char_path, LPWSTR* unicode_path);
 
-void os::set_native_thread_name(const char *name) {
+void os::set_native_thread_name(const char *name, size_t len) {
+  // Windows APIs require NUL-terminated strings; the name pointer
+  // may not be NUL-terminated, so copy into a local buffer.
+  char stack_buf[256];
+  char* terminated;
+  if (len < sizeof(stack_buf)) {
+    memcpy(stack_buf, name, len);
+    stack_buf[len] = '\0';
+    terminated = stack_buf;
+  } else {
+    terminated = (char*)os::malloc(len + 1, mtThread);
+    if (terminated == nullptr) return;
+    memcpy(terminated, name, len);
+    terminated[len] = '\0';
+  }
 
   // From Windows 10 and Windows 2016 server, we have a direct API
   // for setting the thread name/description:
@@ -1073,7 +1087,7 @@ void os::set_native_thread_name(const char *name) {
     // SetThreadDescription takes a PCWSTR but we have conversion routines that produce
     // LPWSTR. The only difference is that PCWSTR is a pointer to const WCHAR.
     LPWSTR unicode_name;
-    errno_t err = convert_to_unicode(name, &unicode_name);
+    errno_t err = convert_to_unicode(terminated, &unicode_name);
     if (err == ERROR_SUCCESS) {
       HANDLE current = GetCurrentThread();
       HRESULT hr = _SetThreadDescription(current, unicode_name);
@@ -1081,7 +1095,7 @@ void os::set_native_thread_name(const char *name) {
         log_debug(os, thread)("set_native_thread_name: SetThreadDescription failed - falling back to debugger method");
         FREE_C_HEAP_ARRAY(WCHAR, unicode_name);
       } else {
-        log_trace(os, thread)("set_native_thread_name: SetThreadDescription succeeded - new name: %s", name);
+        log_trace(os, thread)("set_native_thread_name: SetThreadDescription succeeded - new name: %s", terminated);
 
 #ifdef ASSERT
         // For verification purposes in a debug build we read the thread name back and check it.
@@ -1103,6 +1117,7 @@ void os::set_native_thread_name(const char *name) {
         }
 #endif
         FREE_C_HEAP_ARRAY(WCHAR, unicode_name);
+        if (terminated != stack_buf) os::free(terminated);
         return;
       }
     } else {
@@ -1119,6 +1134,7 @@ void os::set_native_thread_name(const char *name) {
   // If there is no debugger attached skip raising the exception
   if (!IsDebuggerPresent()) {
     log_debug(os, thread)("set_native_thread_name: no debugger present so unable to set thread name");
+    if (terminated != stack_buf) os::free(terminated);
     return;
   }
 
@@ -1131,13 +1147,15 @@ void os::set_native_thread_name(const char *name) {
   } info;
 
   info.dwType = 0x1000;
-  info.szName = name;
+  info.szName = terminated;
   info.dwThreadID = -1;
   info.dwFlags = 0;
 
   __try {
     RaiseException (MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(DWORD), (const ULONG_PTR*)&info );
   } __except(EXCEPTION_EXECUTE_HANDLER) {}
+
+  if (terminated != stack_buf) os::free(terminated);
 }
 
 void os::win32::initialize_performance_counter() {
