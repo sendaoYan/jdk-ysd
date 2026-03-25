@@ -25,7 +25,6 @@
 /*
  * @test id=generational
  * @summary Test that growth of old-gen triggers old-gen marking
- * @key intermittent
  * @requires vm.gc.Shenandoah
  * @requires vm.flagless
  * @library /test/lib
