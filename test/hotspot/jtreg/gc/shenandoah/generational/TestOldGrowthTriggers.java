@@ -1,5 +1,6 @@
 /*
  * Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,7 +44,7 @@ public class TestOldGrowthTriggers {
     public static void makeOldAllocations() {
         // Expect most of the BitSet entries placed into array to be promoted, and most will eventually become garbage within old
 
-        final int ArraySize = 512 * 1024;   // 512K entries
+        final int ArraySize = 512 * 1024;  // 512K entries
         final int BitsInBitSet = 128;
         final int RefillIterations = 128;
         BitSet[] array = new BitSet[ArraySize];
