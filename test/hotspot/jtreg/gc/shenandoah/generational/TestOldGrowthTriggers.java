@@ -32,8 +32,9 @@
  * @run driver TestOldGrowthTriggers
  */
 
-import java.util.*;
-import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Random;
 
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
@@ -41,39 +42,52 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestOldGrowthTriggers {
 
     public static void makeOldAllocations() {
-        // Expect most of the BigInteger entries placed into array to be promoted, and most will eventually become garbage within old
+        // Expect most of the BitSet entries placed into array to be promoted, and most will eventually become garbage within old
 
         final int ArraySize = 512 * 1024;   // 512K entries
-        final int BitsInBigInteger = 128;
-        final int RefillIterations = 64;
-        BigInteger array[] = new BigInteger[ArraySize];
+        final int BitsInBitSet = 128;
+        final int RefillIterations = 128;
+        BitSet[] array = new BitSet[ArraySize];
         Random r = new Random(46);
 
         for (int i = 0; i < ArraySize; i++) {
-            array[i] = new BigInteger(BitsInBigInteger, r);
+            array[i] = createRandomBitSet(BitsInBitSet, r);
         }
 
         for (int refillCount = 0; refillCount < RefillIterations; refillCount++) {
-            // Each refill repopulates ArraySize randomly selected elements within array
-            for (int i = 0; i < ArraySize; i++) {
-                int replaceIndex = r.nextInt(ArraySize);
-                int deriveIndex = r.nextInt(ArraySize);
+            // Each refill repopulates ArraySize
+            for (int i = 1; i < ArraySize; i++) {
+                int replaceIndex = i;
+                int deriveIndex = i-1;
+
                 switch (i & 0x7) {
-                    case 0,1,2:
-                        // creates new old BigInteger, releases old BigInteger,
-                        // may create ephemeral data while computing gcd
-                        array[replaceIndex] = array[replaceIndex].gcd(array[deriveIndex]);
+                    case 0,1,2,3:
+                        // creates new BitSet, releases old BitSet,
+                        // create ephemeral data while computing
+                        BitSet resultAnd = (BitSet) array[replaceIndex].clone();
+                        BitSet tmp = (BitSet) array[deriveIndex].clone();
+                        resultAnd.and(tmp);
+                        array[replaceIndex] = resultAnd;
                         break;
-                    case 3,4:
-                        // creates new old BigInteger, releases old BigInteger
-                        array[replaceIndex] = array[replaceIndex].multiply(array[deriveIndex]);
-                        break;
-                    case 5,6,7:
-                        // do nothing, let all objects in the array age to increase pressure on old generation
+                    case 4,5,6,7:
+                        // creates new BitSet, releases old BitSet
+                        BitSet resultXor = (BitSet) array[replaceIndex].clone();
+                        resultXor.xor(array[deriveIndex]);
+                        array[replaceIndex] = resultXor;
                         break;
                 }
             }
         }
+    }
+
+    private static BitSet createRandomBitSet(int bits, Random r) {
+        BitSet bs = new BitSet(bits);
+        for (int i = 0; i < bits; i++) {
+            if (r.nextBoolean()) {
+                bs.set(i);
+            }
+        }
+        return bs;
     }
 
     public static void testOld(String... args) throws Exception {
