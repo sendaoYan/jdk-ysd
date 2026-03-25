@@ -34,7 +34,6 @@
 
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Random;
 
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
@@ -44,14 +43,12 @@ public class TestOldGrowthTriggers {
     public static void makeOldAllocations() {
         // Expect most of the BitSet entries placed into array to be promoted, and most will eventually become garbage within old
 
-        final int ArraySize = 512 * 1024;  // 512K entries
-        final int BitsInBitSet = 128;
+        final int ArraySize = 1024;  // 1K entries
         final int RefillIterations = 128;
         BitSet[] array = new BitSet[ArraySize];
-        Random r = new Random(46);
 
         for (int i = 0; i < ArraySize; i++) {
-            array[i] = createRandomBitSet(BitsInBitSet, r);
+            array[i] = new BitSet(256 * 1024);
         }
 
         for (int refillCount = 0; refillCount < RefillIterations; refillCount++) {
@@ -61,33 +58,26 @@ public class TestOldGrowthTriggers {
                 int deriveIndex = i-1;
 
                 switch (i & 0x7) {
-                    case 0,1,2,3:
+                    case 0,1,2 -> {
                         // creates new BitSet, releases old BitSet,
                         // create ephemeral data while computing
-                        BitSet resultAnd = (BitSet) array[replaceIndex].clone();
-                        BitSet tmp = (BitSet) array[deriveIndex].clone();
-                        resultAnd.and(tmp);
-                        array[replaceIndex] = resultAnd;
-                        break;
-                    case 4,5,6,7:
+                        BitSet result = (BitSet) array[deriveIndex].clone();
+                        for (int j=0; j<10; j++) {
+                            result = (BitSet) array[deriveIndex].clone();
+                        }
+                        array[replaceIndex] = result;
+                    }
+                    case 3,4 -> {
                         // creates new BitSet, releases old BitSet
-                        BitSet resultXor = (BitSet) array[replaceIndex].clone();
-                        resultXor.xor(array[deriveIndex]);
-                        array[replaceIndex] = resultXor;
-                        break;
+                        BitSet result = (BitSet) array[deriveIndex].clone();
+                        array[replaceIndex] = result;
+                    }
+                    case 5,6,7 -> {
+                        // do nothing, let all objects in the array age to increase pressure on old generation
+                    }
                 }
             }
         }
-    }
-
-    private static BitSet createRandomBitSet(int bits, Random r) {
-        BitSet bs = new BitSet(bits);
-        for (int i = 0; i < bits; i++) {
-            if (r.nextBoolean()) {
-                bs.set(i);
-            }
-        }
-        return bs;
     }
 
     public static void testOld(String... args) throws Exception {
