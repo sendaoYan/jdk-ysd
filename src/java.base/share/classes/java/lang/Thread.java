@@ -1796,7 +1796,7 @@ public class Thread implements Runnable {
         }
         String oldName = this.name;
         this.name = name;
-        if (!isVirtual() && Thread.currentThread() == this && !name.equals(oldName)) {
+        if (!isVirtual() && Thread.currentThread() == this) {
             setNativeName(name);
         }
     }
