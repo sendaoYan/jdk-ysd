@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2026, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2015, 2020, Red Hat Inc. All rights reserved.
- * Copyright 2025 Arm Limited and/or its affiliates.
+ * Copyright 2025, 2026 Arm Limited and/or its affiliates.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,9 +55,31 @@ SpinWait VM_Version::_spin_wait;
 const char* VM_Version::_features_names[MAX_CPU_FEATURES] = { nullptr };
 
 static SpinWait get_spin_wait_desc() {
-  SpinWait spin_wait(OnSpinWaitInst, OnSpinWaitInstCount);
+  SpinWait spin_wait(OnSpinWaitInst, OnSpinWaitInstCount, OnSpinWaitDelay);
   if (spin_wait.inst() == SpinWait::SB && !VM_Version::supports_sb()) {
     vm_exit_during_initialization("OnSpinWaitInst is SB but current CPU does not support SB instruction");
+  }
+
+  if (spin_wait.inst() == SpinWait::WFET) {
+    if (!VM_Version::supports_wfxt()) {
+      vm_exit_during_initialization("OnSpinWaitInst is WFET but the CPU does not support the WFET instruction");
+    }
+
+    if (!VM_Version::supports_ecv()) {
+      vm_exit_during_initialization("The CPU does not support the FEAT_ECV required by the -XX:OnSpinWaitInst=wfet implementation");
+    }
+
+    if (!VM_Version::supports_sb()) {
+      vm_exit_during_initialization("The CPU does not support the SB instruction required by the -XX:OnSpinWaitInst=wfet implementation");
+    }
+
+    if (OnSpinWaitInstCount != 1) {
+      vm_exit_during_initialization("OnSpinWaitInstCount for OnSpinWaitInst 'wfet' must be 1");
+    }
+  } else {
+    if (!FLAG_IS_DEFAULT(OnSpinWaitDelay)) {
+      vm_exit_during_initialization("OnSpinWaitDelay can only be used with -XX:OnSpinWaitInst=wfet");
+    }
   }
 
   return spin_wait;
@@ -365,16 +387,28 @@ void VM_Version::initialize() {
     FLAG_SET_DEFAULT(UseSHA256Intrinsics, false);
   }
 
-  if (UseSHA && VM_Version::supports_sha3()) {
-    // Auto-enable UseSHA3Intrinsics on hardware with performance benefit.
-    // Note that the evaluation of UseSHA3Intrinsics shows better performance
+  if (UseSHA) {
+    // No need to check VM_Version::supports_sha3(), since a fallback GPR intrinsic implementation is provided.
+    if (FLAG_IS_DEFAULT(UseSHA3Intrinsics)) {
+      FLAG_SET_DEFAULT(UseSHA3Intrinsics, true);
+    }
+  } else if (UseSHA3Intrinsics) {
+    // Matches the documented and tested behavior: the -UseSHA option disables all SHA intrinsics.
+    warning("UseSHA3Intrinsics requires that UseSHA is enabled.");
+    FLAG_SET_DEFAULT(UseSHA3Intrinsics, false);
+  }
+
+  if (UseSHA3Intrinsics && VM_Version::supports_sha3()) {
+    // Auto-enable UseSIMDForSHA3Intrinsic on hardware with performance benefit.
+    // Note that the evaluation of SHA3 extension Intrinsics shows better performance
     // on Apple and Qualcomm silicon but worse performance on Neoverse V1 and N2.
     if (_cpu == CPU_APPLE || _cpu == CPU_QUALCOMM) {  // Apple or Qualcomm silicon
-      if (FLAG_IS_DEFAULT(UseSHA3Intrinsics)) {
-        FLAG_SET_DEFAULT(UseSHA3Intrinsics, true);
+      if (FLAG_IS_DEFAULT(UseSIMDForSHA3Intrinsic)) {
+        FLAG_SET_DEFAULT(UseSIMDForSHA3Intrinsic, true);
       }
     }
-  } else if (UseSHA3Intrinsics && UseSIMDForSHA3Intrinsic) {
+  }
+  if (UseSHA3Intrinsics && UseSIMDForSHA3Intrinsic && !VM_Version::supports_sha3()) {
     warning("Intrinsics for SHA3-224, SHA3-256, SHA3-384 and SHA3-512 crypto hash functions not available on this CPU.");
     FLAG_SET_DEFAULT(UseSHA3Intrinsics, false);
   }
