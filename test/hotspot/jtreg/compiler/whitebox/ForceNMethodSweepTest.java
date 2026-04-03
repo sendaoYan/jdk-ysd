@@ -23,8 +23,8 @@
 
 /*
  * @test
- * @bug 8059624 8064669 8153265
- * @summary testing of WB::forceNMethodSweep
+ * @bug 8059624 8064669 8153265 8345760
+ * @summary Code cache usage drops after deoptimization when unreachable nmethods are unloaded (uses Serial GC).
  * @library /test/lib /
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -38,6 +38,7 @@
  *                   -XX:CompileCommand=compileonly,compiler.whitebox.SimpleTestCaseHelper::*
  *                   -XX:-BackgroundCompilation
  *                   -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockExperimentalVMOptions -XX:+EagerJVMCI
+ *                   -XX:+UseSerialGC
  *                   compiler.whitebox.ForceNMethodSweepTest
  */
 
@@ -91,8 +92,11 @@ public class ForceNMethodSweepTest extends CompilerWhiteBoxTest {
         if (testCase.isOsr()) {
             WHITE_BOX.makeMethodNotCompilable(method, COMP_LEVEL_ANY, false);
         }
-        WHITE_BOX.fullGC();
-        int afterDeoptAndSweep = getTotalUsage();
+        int afterDeoptAndSweep = afterSweep;
+        for (int i = 0; i < 10 && afterDeoptAndSweep >= afterSweep; i++) {
+            WHITE_BOX.fullGC();
+            afterDeoptAndSweep = getTotalUsage();
+        }
         if (afterDeoptAndSweep >= afterSweep) {
             System.err.printf("ForceNMethodSweepTest [%s]: code cache usage did not decrease after deoptimize + full GC%n",
                     testCase.name());
