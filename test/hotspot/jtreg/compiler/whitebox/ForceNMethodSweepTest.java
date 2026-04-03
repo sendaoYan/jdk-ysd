@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,12 +80,26 @@ public class ForceNMethodSweepTest extends CompilerWhiteBoxTest {
 
         WHITE_BOX.fullGC();
         int afterSweep = getTotalUsage();
+        long[] poolUsedAfterSweep = snapshotPoolsUsed();
         Asserts.assertLTE(afterSweep, afterCompilation,
                 "sweep shouldn't increase usage");
 
         deoptimize();
+        // The compiler may otherwise recompile this method before the full GC
+        // runs, refilling the code cache and masking unloading (JDK-8345760).
+        makeNotCompilable();
+        if (testCase.isOsr()) {
+            WHITE_BOX.makeMethodNotCompilable(method, COMP_LEVEL_ANY, false);
+        }
         WHITE_BOX.fullGC();
         int afterDeoptAndSweep = getTotalUsage();
+        if (afterDeoptAndSweep >= afterSweep) {
+            System.err.printf("ForceNMethodSweepTest [%s]: code cache usage did not decrease after deoptimize + full GC%n",
+                    testCase.name());
+            System.err.printf("  usage=%d afterCompilation=%d afterSweep=%d afterDeoptAndSweep=%d%n",
+                    usage, afterCompilation, afterSweep, afterDeoptAndSweep);
+            printCodeCacheUsageCompare(poolUsedAfterSweep, afterSweep, afterDeoptAndSweep);
+        }
         Asserts.assertLT(afterDeoptAndSweep, afterSweep,
                 "sweep after deoptimization should decrease usage");
      }
@@ -96,5 +110,32 @@ public class ForceNMethodSweepTest extends CompilerWhiteBoxTest {
            usage += type.getMemoryPool().getUsage().getUsed();
         }
         return usage;
+    }
+
+    private long[] snapshotPoolsUsed() {
+        long[] snap = new long[blobTypes.size()];
+        int i = 0;
+        for (BlobType type : blobTypes) {
+            snap[i++] = type.getMemoryPool().getUsage().getUsed();
+        }
+        return snap;
+    }
+
+    /** For failure diagnosis (JDK-8345760): per-pool before vs after unloading GC. */
+    private void printCodeCacheUsageCompare(long[] poolUsedAfterSweep,
+                                            int totalAfterSweep,
+                                            int totalAfterDeoptGc) {
+        System.err.println("per-pool used (bytes), afterSweep vs after deoptimize + full GC:");
+        int i = 0;
+        for (BlobType type : blobTypes) {
+            long afterDeopt = type.getMemoryPool().getUsage().getUsed();
+            long atSweep = poolUsedAfterSweep[i++];
+            System.err.printf("  %s (%s): afterSweep=%d afterDeoptGC=%d (delta %+d)%n",
+                    type.name(), type.getMemoryPool().getName(), atSweep, afterDeopt,
+                    afterDeopt - atSweep);
+        }
+        System.err.printf("  total: afterSweep=%d afterDeoptGC=%d (delta %+d)%n",
+                (long) totalAfterSweep, (long) totalAfterDeoptGc,
+                (long) totalAfterDeoptGc - totalAfterSweep);
     }
 }
