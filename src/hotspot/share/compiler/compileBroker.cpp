@@ -1447,6 +1447,14 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
   if (method->is_native() && !method->is_method_handle_intrinsic()) {
     address adr = NativeLookup::lookup(method, THREAD);
     if (HAS_PENDING_EXCEPTION) {
+      // While <clinit> is running, JNI may not be registered yet (RegisterNatives,
+      // System.loadLibrary, etc.). Treat lookup failure as transient: do not mark
+      // the method permanently not compilable; retry after full initialization.
+      InstanceKlass* holder = method->method_holder();
+      if (holder->is_being_initialized()) {
+        CLEAR_PENDING_EXCEPTION;
+        return nullptr;
+      }
       // In case of an exception looking up the method, we just forget
       // about it. The interpreter will kick-in and throw the exception.
       method->set_not_compilable("NativeLookup::lookup failed"); // implies is_not_osr_compilable()
