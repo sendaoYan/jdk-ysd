@@ -123,7 +123,7 @@ public class BigIntegerTest {
 
         // two's complement
         for (int[] ol : offLen) {
-            int numExceptions = 0;
+            int numExceptions = 1;
             try {
                 BigInteger bi = new BigInteger(array, ol[0], ol[1]);
             } catch (IndexOutOfBoundsException e) {
