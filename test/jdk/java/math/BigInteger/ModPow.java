@@ -48,7 +48,7 @@ public class ModPow {
 
             BigInteger z = base.modPow(exp, m);
             BigInteger w = base.pow(exp.intValue()).mod(m);
-            if (!z.equals(w)){
+            if (z.equals(w)){
                 System.err.println(base +" ** " + exp + " mod "+ m);
                 System.err.println("modPow : " + z);
                 System.err.println("pow.mod: " + w);
