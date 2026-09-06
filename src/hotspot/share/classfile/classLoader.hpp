@@ -93,7 +93,7 @@ class ClassPathZipEntry: public ClassPathEntry {
   const char* name() const { return _zip_name; }
   ClassPathZipEntry(jzfile* zip, const char* zip_name);
   virtual ~ClassPathZipEntry();
-  bool has_entry(JavaThread* current, const char* name);
+  bool has_entry(JavaThread* current, const char* name, Handle class_loader, bool is_multi_release_jar);
   u1* open_entry(JavaThread* current, const char* name, jint* filesize, bool nul_terminate);
   ClassFileStream* open_stream(JavaThread* current, const char* name);
 };
@@ -335,7 +335,7 @@ class ClassLoader: AllStatic {
   // loaded system packages.
   // Note: The package names returned are "/"-separated and end with a
   // trailing "/".
-  static objArrayOop get_system_packages(TRAPS);
+  static refArrayOop get_system_packages(TRAPS);
 
   // Initialization
   static void initialize(TRAPS);
@@ -365,10 +365,6 @@ class ClassLoader: AllStatic {
   // JImage file. Until this is called, jimage_find_resource(), and any other
   // JImage resource lookups or access will fail.
   static void set_preview_mode(bool enable_preview);
-
-  // Determines if the named module is present in the
-  // modules jimage file or in the exploded modules directory.
-  static bool is_module_observable(const char* module_name);
 
   static void  trace_class_path(const char* msg, const char* name = nullptr);
 

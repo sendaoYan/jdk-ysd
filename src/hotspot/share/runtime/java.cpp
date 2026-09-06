@@ -30,7 +30,7 @@
 #include "classfile/classLoader.hpp"
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/classPrinter.hpp"
-#include "classfile/javaClasses.hpp"
+#include "classfile/javaStackTraceClasses.hpp"
 #include "classfile/stringTable.hpp"
 #include "classfile/symbolTable.hpp"
 #include "classfile/systemDictionary.hpp"
@@ -100,9 +100,6 @@
 #endif
 #if INCLUDE_JFR
 #include "jfr/jfr.hpp"
-#endif
-#if INCLUDE_JVMCI
-#include "jvmci/jvmci.hpp"
 #endif
 
 GrowableArray<Method*>* collected_profiled_methods;
@@ -284,16 +281,6 @@ void print_statistics() {
     IndexSet::print_statistics();
   }
 #endif // ASSERT
-#else // COMPILER2
-#if INCLUDE_JVMCI
-#ifndef COMPILER1
-  if ((TraceDeoptimization || LogVMOutput || LogCompilation) && UseCompiler) {
-    FlagSetting fs(DisplayVMOutput, DisplayVMOutput && TraceDeoptimization);
-    Deoptimization::print_statistics();
-    SharedRuntime::print_statistics();
-  }
-#endif // COMPILER1
-#endif // INCLUDE_JVMCI
 #endif // COMPILER2
 
   if (PrintNMethodStatistics) {
@@ -393,6 +380,12 @@ void before_exit(JavaThread* thread, bool halt) {
 
   Events::log(thread, "Before exit entered");
 
+  // A GC requested after we shut down the heap blocks that requesting Java thread.
+  // Suppress GC-a-lot for threads entering shutdown as Monitor::lock() calls in the
+  // remainder of the shutdown sequence could otherwise block when executing a
+  // GC-a-lot caused collection.
+  NOT_PRODUCT(thread->set_skip_gcalot(true);)
+
   // Note: don't use a Mutex to guard the entire before_exit(), as
   // JVMTI post_thread_end_event and post_vm_death_event will run native code.
   // A CAS or OSMutex would work just fine but then we need to manipulate
@@ -447,12 +440,6 @@ void before_exit(JavaThread* thread, bool halt) {
 #endif
 
   // Actual shutdown logic begins here.
-
-#if INCLUDE_JVMCI
-  if (EnableJVMCI) {
-    JVMCI::shutdown(thread);
-  }
-#endif
 
 #if INCLUDE_CDS
   ClassListWriter::write_resolved_constants();
